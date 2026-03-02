@@ -38,7 +38,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
       throw new AppError('This transaction is already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updated = await tx.transaction.updateMany({
         where: { id: input.transactionId, status: TransactionStatus.PENDING },
         data: {
@@ -96,7 +96,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
       throw new AppError('Only completed transactions can be reversed.', 'BAD_REQUEST', 400)
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.transaction.create({
         data: {
           userId: originalTx.userId,

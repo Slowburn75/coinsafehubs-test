@@ -17,7 +17,7 @@ export class BalanceService {
     }) {
         const amount = new Prisma.Decimal(params.amount)
 
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Update UserBalance
             const balance = await tx.userBalance.update({
                 where: { userId: params.userId },
@@ -58,7 +58,7 @@ export class BalanceService {
     }) {
         const amount = new Prisma.Decimal(params.amount)
 
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Check current balance
             const currentBalance = await tx.userBalance.findUnique({
                 where: { userId: params.userId }
@@ -110,7 +110,7 @@ export class BalanceService {
         adminId: string
         reason: string
     }) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const oldBalance = await tx.userBalance.findUnique({
                 where: { userId: params.userId }
             })

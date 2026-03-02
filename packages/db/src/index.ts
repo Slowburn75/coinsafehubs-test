@@ -1,4 +1,13 @@
 import { PrismaClient } from '@prisma/client'
+export { Prisma } from '@prisma/client'
+export {
+    InvestmentStatus,
+    Role,
+    TransactionSource,
+    TransactionStatus,
+    TransactionType,
+} from '@prisma/client'
+export { Decimal } from '@prisma/client/runtime/library'
 
 const prismaClientSingleton = () => {
     return new PrismaClient()
