@@ -32,7 +32,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function AdminSupportPage() {
+export default function AdminSupportPage() {
     const queryClient = useQueryClient()
     const { data, isLoading, error, refetch } = useQuery(orpc.admin.support.list.queryOptions({
         input: { page: 1, limit: 50 }
@@ -168,4 +168,4 @@ export function AdminSupportPage() {
     )
 }
 
-export default AdminSupportPage
+

@@ -36,7 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton"
 import { Loader2 } from 'lucide-react'
 
-export function UserTable() {
+function UserTable() {
     const queryClient = useQueryClient()
     const [page, setPage] = React.useState(1)
     const { data, isLoading, error, refetch } = useQuery(orpc.admin.users.list.queryOptions({
