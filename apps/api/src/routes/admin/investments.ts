@@ -1,9 +1,8 @@
 import { adminInvestmentsContract } from '@repo/types'
 import { implement } from '@orpc/server'
-import { prisma } from '@repo/db'
+import { prisma, Prisma, InvestmentStatus, TransactionSource, TransactionType } from '@repo/db'
 import { AppError } from '../../utils/errors'
 import { AuditService } from '../../lib/auditService'
-import { InvestmentStatus, TransactionSource, TransactionType } from '@repo/db'
 
 export const investmentsRouter = implement(adminInvestmentsContract).router({
     list: implement(adminInvestmentsContract.list).handler(async ({ input }) => {
@@ -51,7 +50,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
 
         const payoutAmount = investment.amount.add(investment.amount.mul(investment.roi.div(100)))
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.investment.update({
                 where: { id: input.investmentId },
                 data: { status: InvestmentStatus.COMPLETED }
@@ -100,7 +99,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
             throw new AppError('Investment not found or not active', 'NOT_FOUND', 404)
         }
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.investment.update({
                 where: { id: input.investmentId },
                 data: { status: InvestmentStatus.CANCELLED }

@@ -1,12 +1,12 @@
 import { transactionsContract } from '@repo/types'
 import { implement } from '@orpc/server'
-import { Prisma, TransactionType, TransactionStatus } from '@repo/db'
+import { Decimal, Prisma, TransactionType, TransactionStatus } from '@repo/db'
 import { prisma } from '@repo/db'
 import { AppError } from '../utils/errors'
 import { AuditService } from '../lib/auditService'
 
 const parseAmount = (amount: string | number) => {
-  const v = new Prisma.Decimal(amount)
+  const v = new Decimal(amount)
   if (v.lte(0)) throw new AppError('Amount must be greater than zero.', 'VALIDATION_ERROR', 400)
   return v
 }
@@ -30,7 +30,7 @@ export const transactionsRouter = implement(transactionsContract).router({
 
     const amount = parseAmount(input.amount)
 
-    const transaction = await prisma.$transaction(async (tx) => {
+    const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const balance = await tx.userBalance.upsert({
         where: { userId: payload.id },
         update: {},

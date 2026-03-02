@@ -1,5 +1,5 @@
 import { prisma } from '@repo/db'
-import { Prisma, TransactionType, TransactionSource, TransactionStatus } from '@repo/db'
+import { Decimal, Prisma, TransactionType, TransactionSource, TransactionStatus } from '@repo/db'
 import { AppError } from '../utils/errors'
 
 export class BalanceService {
@@ -8,16 +8,16 @@ export class BalanceService {
      */
     static async credit(params: {
         userId: string
-        amount: number | Prisma.Decimal
+        amount: number | Decimal
         type: TransactionType
         source: TransactionSource
         reference?: string
         adminNote?: string
         metadata?: any
     }) {
-        const amount = new Prisma.Decimal(params.amount)
+        const amount = new Decimal(params.amount)
 
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Update UserBalance
             const balance = await tx.userBalance.update({
                 where: { userId: params.userId },
@@ -49,16 +49,16 @@ export class BalanceService {
      */
     static async debit(params: {
         userId: string
-        amount: number | Prisma.Decimal
+        amount: number | Decimal
         type: TransactionType
         source: TransactionSource
         reference?: string
         adminNote?: string
         metadata?: any
     }) {
-        const amount = new Prisma.Decimal(params.amount)
+        const amount = new Decimal(params.amount)
 
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Check current balance
             const currentBalance = await tx.userBalance.findUnique({
                 where: { userId: params.userId }
@@ -101,16 +101,16 @@ export class BalanceService {
     static async editBalance(params: {
         userId: string
         newBalances: {
-            available?: number | Prisma.Decimal
-            invested?: number | Prisma.Decimal
-            earnings?: number | Prisma.Decimal
-            bonus?: number | Prisma.Decimal
-            pending?: number | Prisma.Decimal
+            available?: number | Decimal
+            invested?: number | Decimal
+            earnings?: number | Decimal
+            bonus?: number | Decimal
+            pending?: number | Decimal
         }
         adminId: string
         reason: string
     }) {
-        return await prisma.$transaction(async (tx) => {
+        return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             const oldBalance = await tx.userBalance.findUnique({
                 where: { userId: params.userId }
             })
@@ -122,7 +122,7 @@ export class BalanceService {
 
             for (const [key, value] of Object.entries(params.newBalances)) {
                 if (value !== undefined) {
-                    const newVal = new Prisma.Decimal(value)
+                    const newVal = new Decimal(value)
                     if (newVal.lt(0)) throw new AppError(`${key} balance cannot be negative`, 'BAD_REQUEST', 400)
 
                     updateData[key as keyof Prisma.UserBalanceUpdateInput] = newVal
@@ -143,7 +143,7 @@ export class BalanceService {
                 data: {
                     userId: params.userId,
                     type: TransactionType.INTEREST, // Using INTEREST as a placeholder for adjustments or we could add 'ADJUSTMENT' to enum
-                    amount: new Prisma.Decimal(Math.abs(totalDelta)),
+                    amount: new Decimal(Math.abs(totalDelta)),
                     status: TransactionStatus.COMPLETED,
                     source: TransactionSource.SYSTEM,
                     adminNote: `Admin ${params.adminId} manual adjustment: ${params.reason}. Deltas: ${JSON.stringify(deltas)}`,

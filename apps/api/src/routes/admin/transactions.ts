@@ -1,6 +1,6 @@
 import { adminTransactionsContract } from '@repo/types'
 import { implement } from '@orpc/server'
-import { prisma, Prisma, TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
+import { prisma, Decimal, Prisma, TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
 import { AppError } from '../../utils/errors'
 import { AuditService } from '../../lib/auditService'
 
@@ -38,7 +38,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
       throw new AppError('This transaction is already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updated = await tx.transaction.updateMany({
         where: { id: input.transactionId, status: TransactionStatus.PENDING },
         data: {
@@ -52,7 +52,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
         throw new AppError('Transaction approval was already processed by another request.', 'TRANSACTION_RACE_CONDITION', 409)
       }
 
-      const amount = new Prisma.Decimal(transaction.amount)
+      const amount = new Decimal(transaction.amount)
 
       if (transaction.type === TransactionType.DEPOSIT && input.status === TransactionStatus.COMPLETED) {
         await tx.userBalance.upsert({
@@ -96,7 +96,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
       throw new AppError('Only completed transactions can be reversed.', 'BAD_REQUEST', 400)
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.transaction.create({
         data: {
           userId: originalTx.userId,
