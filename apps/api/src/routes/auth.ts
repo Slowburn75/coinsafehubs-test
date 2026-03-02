@@ -99,7 +99,14 @@ export const authRouter = implement(authContract).router({
         kycStatus: user.kycStatus,
         isActive: user.isActive,
         createdAt: user.createdAt,
-        balance: user.balance || undefined,
+        balance: user.balance ? {
+          ...user.balance,
+          available: user.balance.available.toNumber(),
+          invested: user.balance.invested.toNumber(),
+          earnings: user.balance.earnings.toNumber(),
+          bonus: user.balance.bonus.toNumber(),
+          pending: user.balance.pending.toNumber(),
+        } : undefined,
       },
     }
   }),
