@@ -1,6 +1,6 @@
 import { adminTransactionsContract } from '@repo/types'
 import { implement } from '@orpc/server'
-import { prisma, Prisma, TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
+import { prisma, Decimal, Prisma, TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
 import { AppError } from '../../utils/errors'
 import { AuditService } from '../../lib/auditService'
 
@@ -52,7 +52,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
         throw new AppError('Transaction approval was already processed by another request.', 'TRANSACTION_RACE_CONDITION', 409)
       }
 
-      const amount = new Prisma.Decimal(transaction.amount)
+      const amount = new Decimal(transaction.amount)
 
       if (transaction.type === TransactionType.DEPOSIT && input.status === TransactionStatus.COMPLETED) {
         await tx.userBalance.upsert({
