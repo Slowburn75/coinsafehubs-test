@@ -153,7 +153,7 @@ app.post('/admin/approve', checkAuth, requireRole('ADMIN'), async (c) => {
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const updated = await tx.transaction.updateMany({ where: { id: transactionId, status: TransactionStatus.PENDING }, data: { status: TransactionStatus.COMPLETED, adminNote: reason, approvedBy: admin.id, processedAt: new Date() } })
     if (updated.count !== 1) throw new AppError('Transaction already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
-    const amount = new Decimal(transaction.amount)
+    const amount = new Decimal(transaction.amount.toString())
     if (transaction.type === TransactionType.DEPOSIT) {
       await tx.userBalance.upsert({ where: { userId: transaction.userId }, create: { userId: transaction.userId, available: amount }, update: { available: { increment: amount } } })
     } else if (transaction.type === TransactionType.WITHDRAWAL) {
@@ -176,7 +176,7 @@ app.post('/admin/reject', checkAuth, requireRole('ADMIN'), async (c) => {
     const updated = await tx.transaction.updateMany({ where: { id: transactionId, status: TransactionStatus.PENDING }, data: { status: TransactionStatus.REJECTED, adminNote: reason, approvedBy: admin.id, processedAt: new Date() } })
     if (updated.count !== 1) throw new AppError('Transaction already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
     if (transaction.type === TransactionType.WITHDRAWAL) {
-      const amount = new Decimal(transaction.amount)
+      const amount = new Decimal(transaction.amount.toString())
       await tx.userBalance.update({ where: { userId: transaction.userId }, data: { pending: { decrement: amount }, available: { increment: amount } } })
     }
   })

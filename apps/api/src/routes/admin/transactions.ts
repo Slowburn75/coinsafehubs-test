@@ -5,7 +5,7 @@ import { AppError } from '../../utils/errors'
 import { AuditService } from '../../lib/auditService'
 
 export const transactionsRouter = implement(adminTransactionsContract).router({
-  list: implement(adminTransactionsContract.list).handler(async ({ input }) => {
+  list: implement(adminTransactionsContract.list).handler(async ({ input }: { input: any }) => {
     const { page, limit, status } = input
     const skip = (page - 1) * limit
 
@@ -25,7 +25,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
     return { data: transactions as any, page, limit, total, totalPages: Math.ceil(total / limit) }
   }),
 
-  updateStatus: implement(adminTransactionsContract.updateStatus).handler(async ({ input, context }) => {
+  updateStatus: implement(adminTransactionsContract.updateStatus).handler(async ({ input, context }: { input: any; context: any }) => {
     const admin = (context as any).user
 
     if (input.status !== 'COMPLETED' && input.status !== 'REJECTED') {
@@ -52,7 +52,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
         throw new AppError('Transaction approval was already processed by another request.', 'TRANSACTION_RACE_CONDITION', 409)
       }
 
-      const amount = new Decimal(transaction.amount)
+      const amount = new Decimal(transaction.amount.toString())
 
       if (transaction.type === TransactionType.DEPOSIT && input.status === TransactionStatus.COMPLETED) {
         await tx.userBalance.upsert({
@@ -88,7 +88,7 @@ export const transactionsRouter = implement(adminTransactionsContract).router({
     return { success: true }
   }),
 
-  reverse: implement(adminTransactionsContract.reverse).handler(async ({ input, context }) => {
+  reverse: implement(adminTransactionsContract.reverse).handler(async ({ input, context }: { input: any; context: any }) => {
     const admin = (context as any).user
     const originalTx = await prisma.transaction.findUnique({ where: { id: input.transactionId } })
 

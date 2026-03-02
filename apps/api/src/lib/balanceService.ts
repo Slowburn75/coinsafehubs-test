@@ -15,7 +15,7 @@ export class BalanceService {
         adminNote?: string
         metadata?: any
     }) {
-        const amount = new Decimal(params.amount)
+        const amount = new Decimal(params.amount.toString())
 
         return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Update UserBalance
@@ -56,7 +56,7 @@ export class BalanceService {
         adminNote?: string
         metadata?: any
     }) {
-        const amount = new Decimal(params.amount)
+        const amount = new Decimal(params.amount.toString())
 
         return await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             // 1. Check current balance
@@ -117,12 +117,12 @@ export class BalanceService {
 
             if (!oldBalance) throw new AppError('User balance record not found', 'NOT_FOUND', 404)
 
-            const updateData: Prisma.UserBalanceUpdateInput = {}
+            const updateData: any = {}
             const deltas: any = {}
 
             for (const [key, value] of Object.entries(params.newBalances)) {
                 if (value !== undefined) {
-                    const newVal = new Decimal(value)
+                    const newVal = new Decimal(value.toString())
                     if (newVal.lt(0)) throw new AppError(`${key} balance cannot be negative`, 'BAD_REQUEST', 400)
 
                     updateData[key as keyof Prisma.UserBalanceUpdateInput] = newVal
@@ -143,7 +143,7 @@ export class BalanceService {
                 data: {
                     userId: params.userId,
                     type: TransactionType.INTEREST, // Using INTEREST as a placeholder for adjustments or we could add 'ADJUSTMENT' to enum
-                    amount: new Decimal(Math.abs(totalDelta)),
+                    amount: new Decimal(Math.abs(totalDelta).toString()),
                     status: TransactionStatus.COMPLETED,
                     source: TransactionSource.SYSTEM,
                     adminNote: `Admin ${params.adminId} manual adjustment: ${params.reason}. Deltas: ${JSON.stringify(deltas)}`,

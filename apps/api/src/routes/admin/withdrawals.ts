@@ -7,7 +7,7 @@ import { AuditService } from '../../lib/auditService'
 import { TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
 
 export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
-    list: implement(adminWithdrawalsContract.list).handler(async ({ input }) => {
+    list: implement(adminWithdrawalsContract.list).handler(async ({ input }: { input: any }) => {
         const { page, limit, status } = input
         const skip = (page - 1) * limit
 
@@ -36,7 +36,7 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
         }
     }),
 
-    approve: implement(adminWithdrawalsContract.approve).handler(async ({ input, context }) => {
+    approve: implement(adminWithdrawalsContract.approve).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         const txRecord = await prisma.transaction.findUnique({
@@ -72,7 +72,7 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
         return { success: true }
     }),
 
-    reject: implement(adminWithdrawalsContract.reject).handler(async ({ input, context }) => {
+    reject: implement(adminWithdrawalsContract.reject).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         await prisma.transaction.update({
@@ -94,7 +94,7 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
         return { success: true }
     }),
 
-    flag: implement(adminWithdrawalsContract.flag).handler(async ({ input, context }) => {
+    flag: implement(adminWithdrawalsContract.flag).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         await prisma.transaction.update({

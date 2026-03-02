@@ -7,7 +7,7 @@ import { AuditService } from '../../lib/auditService'
 import { TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
 
 export const depositsRouter = implement(adminDepositsContract).router({
-    list: implement(adminDepositsContract.list).handler(async ({ input }) => {
+    list: implement(adminDepositsContract.list).handler(async ({ input }: { input: any }) => {
         const { page, limit, status } = input
         const skip = (page - 1) * limit
 
@@ -36,7 +36,7 @@ export const depositsRouter = implement(adminDepositsContract).router({
         }
     }),
 
-    approve: implement(adminDepositsContract.approve).handler(async ({ input, context }) => {
+    approve: implement(adminDepositsContract.approve).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         const txRecord = await prisma.transaction.findUnique({
@@ -72,7 +72,7 @@ export const depositsRouter = implement(adminDepositsContract).router({
         return { success: true }
     }),
 
-    reject: implement(adminDepositsContract.reject).handler(async ({ input, context }) => {
+    reject: implement(adminDepositsContract.reject).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         await prisma.transaction.update({
@@ -94,7 +94,7 @@ export const depositsRouter = implement(adminDepositsContract).router({
         return { success: true }
     }),
 
-    manual: implement(adminDepositsContract.manual).handler(async ({ input, context }) => {
+    manual: implement(adminDepositsContract.manual).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         await BalanceService.credit({
@@ -116,7 +116,7 @@ export const depositsRouter = implement(adminDepositsContract).router({
         return { success: true }
     }),
 
-    bulkApprove: implement(adminDepositsContract.bulkApprove).handler(async ({ input, context }) => {
+    bulkApprove: implement(adminDepositsContract.bulkApprove).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
         let successCount = 0
 

@@ -1,11 +1,11 @@
 import { adminInvestmentsContract } from '@repo/types'
 import { implement } from '@orpc/server'
-import { prisma, Prisma, InvestmentStatus, TransactionSource, TransactionType } from '@repo/db'
+import { prisma, Prisma, Decimal, InvestmentStatus, TransactionSource, TransactionType } from '@repo/db'
 import { AppError } from '../../utils/errors'
 import { AuditService } from '../../lib/auditService'
 
 export const investmentsRouter = implement(adminInvestmentsContract).router({
-    list: implement(adminInvestmentsContract.list).handler(async ({ input }) => {
+    list: implement(adminInvestmentsContract.list).handler(async ({ input }: { input: any }) => {
         const { page, limit, status } = input
         const skip = (page - 1) * limit
 
@@ -36,7 +36,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
         }
     }),
 
-    complete: implement(adminInvestmentsContract.complete).handler(async ({ input, context }) => {
+    complete: implement(adminInvestmentsContract.complete).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         const investment = await prisma.investment.findUnique({
@@ -48,7 +48,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
             throw new AppError('Investment not found or not active', 'NOT_FOUND', 404)
         }
 
-        const payoutAmount = investment.amount.add(investment.amount.mul(investment.roi.div(100)))
+        const payoutAmount = investment.amount.add(investment.amount.mul(investment.roi.div(new Decimal('100'))))
 
         await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
             await tx.investment.update({
@@ -61,7 +61,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
                 data: {
                     available: { increment: payoutAmount },
                     invested: { decrement: investment.amount },
-                    earnings: { increment: investment.amount.mul(investment.roi.div(100)) }
+                    earnings: { increment: investment.amount.mul(investment.roi.div(new Decimal('100'))) }
                 }
             })
 
@@ -88,7 +88,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
         return { success: true }
     }),
 
-    cancel: implement(adminInvestmentsContract.cancel).handler(async ({ input, context }) => {
+    cancel: implement(adminInvestmentsContract.cancel).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         const investment = await prisma.investment.findUnique({
@@ -136,7 +136,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
         return { success: true }
     }),
 
-    pause: implement(adminInvestmentsContract.pause).handler(async ({ input, context }) => {
+    pause: implement(adminInvestmentsContract.pause).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         await prisma.investment.update({
@@ -154,7 +154,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
         return { success: true }
     }),
 
-    adjustRoi: implement(adminInvestmentsContract.adjustRoi).handler(async ({ input, context }) => {
+    adjustRoi: implement(adminInvestmentsContract.adjustRoi).handler(async ({ input, context }: { input: any; context: any }) => {
         const admin = (context as any).user
 
         const oldInvestment = await prisma.investment.findUnique({ where: { id: input.investmentId } })
@@ -170,7 +170,7 @@ export const investmentsRouter = implement(adminInvestmentsContract).router({
             action: 'ADJUST_INVESTMENT_ROI',
             entity: 'investment',
             entityId: input.investmentId,
-            before: { roi: Number(oldInvestment.roi) },
+            before: { roi: Number(oldInvestment.roi.toString()) },
             after: { roi: input.newRoi }
         })
 

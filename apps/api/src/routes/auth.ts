@@ -16,7 +16,7 @@ const cookieOptions = {
 }
 
 export const authRouter = implement(authContract).router({
-  login: implement(authContract.login).handler(async ({ input, context }) => {
+  login: implement(authContract.login).handler(async ({ input, context }: { input: any; context: any }) => {
     const { email, password } = input
 
     const user = await prisma.user.findUnique({ where: { email } })
@@ -59,7 +59,7 @@ export const authRouter = implement(authContract).router({
     }
   }),
 
-  register: implement(authContract.register).handler(async ({ input }) => {
+  register: implement(authContract.register).handler(async ({ input }: { input: any }) => {
     const { email, password } = input
 
     const existing = await prisma.user.findUnique({ where: { email } })
@@ -84,7 +84,7 @@ export const authRouter = implement(authContract).router({
     }
   }),
 
-  me: implement(authContract.me).handler(async ({ context }) => {
+  me: implement(authContract.me).handler(async ({ context }: { context: any }) => {
     const payload = (context as any)?.user
     if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
 
@@ -111,7 +111,7 @@ export const authRouter = implement(authContract).router({
     }
   }),
 
-  logout: implement(authContract.logout).handler(async ({ context }) => {
+  logout: implement(authContract.logout).handler(async ({ context }: { context: any }) => {
     const c = (context as any).c
     const user = (context as any)?.user
     if (user?.id) {

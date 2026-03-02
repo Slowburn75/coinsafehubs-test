@@ -6,13 +6,13 @@ import { AppError } from '../utils/errors'
 import { AuditService } from '../lib/auditService'
 
 const parseAmount = (amount: string | number) => {
-  const v = new Decimal(amount)
+  const v = new Decimal(amount.toString())
   if (v.lte(0)) throw new AppError('Amount must be greater than zero.', 'VALIDATION_ERROR', 400)
   return v
 }
 
 export const transactionsRouter = implement(transactionsContract).router({
-  list: implement(transactionsContract.list).handler(async ({ context }) => {
+  list: implement(transactionsContract.list).handler(async ({ context }: { context: any }) => {
     const payload = (context as any)?.user
     if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
 
@@ -24,7 +24,7 @@ export const transactionsRouter = implement(transactionsContract).router({
     return { transactions: transactions as any }
   }),
 
-  request: implement(transactionsContract.request).handler(async ({ input, context }) => {
+  request: implement(transactionsContract.request).handler(async ({ input, context }: { input: any; context: any }) => {
     const payload = (context as any)?.user
     if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
 
@@ -77,7 +77,7 @@ export const transactionsRouter = implement(transactionsContract).router({
     return { transaction: transaction as any }
   }),
 
-  getById: implement(transactionsContract.getById).handler(async ({ input, context }) => {
+  getById: implement(transactionsContract.getById).handler(async ({ input, context }: { input: any; context: any }) => {
     const payload = (context as any)?.user
     if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
 
