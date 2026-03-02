@@ -8,14 +8,14 @@ interface AuthContextType {
     user: any | null
     isLoading: boolean
     isAuthenticated: boolean
-    refetch: () => void
+    refetch: () => Promise<any>
 }
 
 const AuthContext = createContext<AuthContextType>({
     user: null,
     isLoading: true,
     isAuthenticated: false,
-    refetch: () => { }
+    refetch: async () => { }
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

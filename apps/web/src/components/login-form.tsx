@@ -45,8 +45,12 @@ export function LoginForm({
 
   const loginMutation = useMutation(orpc.auth.login.mutationOptions({
     onSuccess: async () => {
-      await refetch()
-      router.push('/dashboard')
+      const { data: authData } = await refetch()
+      if (authData?.user?.role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/dashboard')
+      }
     },
     onError: (error: any) => {
       setErrorMsg(error.message || 'Invalid email or password constraints')
