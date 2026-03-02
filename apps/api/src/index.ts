@@ -65,7 +65,7 @@ app.post('/auth/signup', authRateLimit, async (c) => {
 
   const { hashPassword } = await import('./lib/bcrypt')
   const hashed = await hashPassword(input.password)
-  const user = await prisma.$transaction(async (tx) => {
+  const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const created = await tx.user.create({
       data: {
         email: input.email,
@@ -150,7 +150,7 @@ app.post('/admin/approve', checkAuth, requireRole('ADMIN'), async (c) => {
   if (!transaction) throw new AppError('Transaction not found.', 'NOT_FOUND', 404)
   if (transaction.status !== TransactionStatus.PENDING) throw new AppError('Transaction already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const updated = await tx.transaction.updateMany({ where: { id: transactionId, status: TransactionStatus.PENDING }, data: { status: TransactionStatus.COMPLETED, adminNote: reason, approvedBy: admin.id, processedAt: new Date() } })
     if (updated.count !== 1) throw new AppError('Transaction already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
     const amount = new Prisma.Decimal(transaction.amount)
@@ -172,7 +172,7 @@ app.post('/admin/reject', checkAuth, requireRole('ADMIN'), async (c) => {
   if (!transaction) throw new AppError('Transaction not found.', 'NOT_FOUND', 404)
   if (transaction.status !== TransactionStatus.PENDING) throw new AppError('Transaction already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const updated = await tx.transaction.updateMany({ where: { id: transactionId, status: TransactionStatus.PENDING }, data: { status: TransactionStatus.REJECTED, adminNote: reason, approvedBy: admin.id, processedAt: new Date() } })
     if (updated.count !== 1) throw new AppError('Transaction already finalized.', 'TRANSACTION_ALREADY_FINALIZED', 409)
     if (transaction.type === TransactionType.WITHDRAWAL) {

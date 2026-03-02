@@ -30,7 +30,7 @@ export const transactionsRouter = implement(transactionsContract).router({
 
     const amount = parseAmount(input.amount)
 
-    const transaction = await prisma.$transaction(async (tx) => {
+    const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const balance = await tx.userBalance.upsert({
         where: { userId: payload.id },
         update: {},

@@ -1,6 +1,6 @@
 import { authContract } from '@repo/types'
 import { implement } from '@orpc/server'
-import { prisma } from '@repo/db'
+import { prisma, Prisma } from '@repo/db'
 import { hashPassword, comparePassword } from '../lib/bcrypt'
 import { signAccessToken, signRefreshToken } from '../lib/jwt'
 import { AppError, AuthError } from '../utils/errors'
@@ -29,7 +29,7 @@ export const authRouter = implement(authContract).router({
     const accessToken = signAccessToken({ id: user.id, email: user.email, role: user.role })
     const refreshToken = signRefreshToken({ id: user.id })
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.refreshToken.deleteMany({ where: { userId: user.id } })
       await tx.refreshToken.create({
         data: {
@@ -66,7 +66,7 @@ export const authRouter = implement(authContract).router({
     if (existing) throw new AppError('Email already in use.', 'AUTH_EMAIL_EXISTS', 409)
 
     const hashedPassword = await hashPassword(password)
-    const user = await prisma.$transaction(async (tx) => {
+    const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const created = await tx.user.create({ data: { email, password: hashedPassword } })
       await tx.userBalance.create({ data: { userId: created.id } })
       return created
