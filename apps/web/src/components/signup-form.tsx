@@ -124,7 +124,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="[EMAIL_ADDRESS]"
+                  placeholder="johndoe@gmail.com"
                   aria-invalid={!!errors.email}
                   {...register('email')}
                 />

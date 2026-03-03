@@ -81,7 +81,7 @@ app.post('/auth/signup', authRateLimit, async (c) => {
     });
     return c.json({ success: true, data: { id: user.id, email: user.email } }, 201);
 });
-// Existing oRPC auth routes remain available
+// Existing oRPC auth routes remain 
 app.use('/api/*', checkAuth);
 app.use('/auth/me', checkAuth);
 app.use('/auth/login', authRateLimit);
