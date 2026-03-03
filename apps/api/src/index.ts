@@ -256,34 +256,6 @@ app.notFound((c) => {
   }, 404)
 })
 
-
-const mapPrismaError = (err: unknown) => {
-  if (err instanceof Prisma.PrismaClientInitializationError) {
-    return { status: 503, code: 'DATABASE_UNAVAILABLE', message: 'Database connection failed. Verify DATABASE_URL, network access, and SSL settings for Render Postgres.' }
-  }
-
-  if (err instanceof Prisma.PrismaClientRustPanicError) {
-    return { status: 500, code: 'DATABASE_ENGINE_PANIC', message: 'Database engine crashed while processing request.' }
-  }
-
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
-    if (err.code === 'P1001') {
-      return { status: 503, code: 'DATABASE_UNREACHABLE', message: 'Cannot reach database server. Check DATABASE_URL host/port and Render network settings.' }
-    }
-    if (err.code === 'P1002') {
-      return { status: 504, code: 'DATABASE_TIMEOUT', message: 'Timed out while connecting to database.' }
-    }
-    if (err.code === 'P1011') {
-      return { status: 503, code: 'DATABASE_TLS_ERROR', message: 'TLS/SSL handshake failed for database connection. Ensure sslmode=require for Render Postgres.' }
-    }
-    if (err.code === 'P2021' || err.code === 'P2022') {
-      return { status: 503, code: 'DATABASE_SCHEMA_OUT_OF_SYNC', message: 'Database schema is out of sync with API. Run Prisma migrations before serving traffic.' }
-    }
-  }
-
-  return null
-}
-
 app.onError((err, c) => {
   const isProd = env.NODE_ENV === 'production'
 

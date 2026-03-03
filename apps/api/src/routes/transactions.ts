@@ -2,7 +2,7 @@ import { transactionsContract } from '@repo/types'
 import { implement } from '@orpc/server'
 import { Decimal, Prisma, TransactionType, TransactionStatus } from '@repo/db'
 import { prisma } from '@repo/db'
-import { AppError } from '../utils/errors'
+import { AppError, handlePrismaError } from '../utils/errors'
 import { AuditService } from '../lib/auditService'
 
 const parseAmount = (amount: string | number) => {
@@ -12,81 +12,93 @@ const parseAmount = (amount: string | number) => {
 }
 
 export const transactionsRouter = implement(transactionsContract).router({
-  list: implement(transactionsContract.list).handler(async ({ context }: { context: any }) => {
-    const payload = (context as any)?.user
-    if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
+  list: implement(transactionsContract.list).handler(async ({ context }) => {
+    try {
+      const payload = (context as any)?.user
+      if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
 
-    const transactions = await prisma.transaction.findMany({
-      where: { userId: payload.id },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    return { transactions: transactions as any }
-  }),
-
-  request: implement(transactionsContract.request).handler(async ({ input, context }: { input: any; context: any }) => {
-    const payload = (context as any)?.user
-    if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
-
-    const amount = parseAmount(input.amount)
-
-    const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const balance = await tx.userBalance.upsert({
+      const transactions = await prisma.transaction.findMany({
         where: { userId: payload.id },
-        update: {},
-        create: { userId: payload.id },
+        orderBy: { createdAt: 'desc' },
       })
 
-      if (input.type === TransactionType.WITHDRAWAL) {
-        if (balance.available.lt(amount)) {
-          throw new AppError(
-            'You do not have enough balance to withdraw this amount.',
-            'WITHDRAWAL_INSUFFICIENT_BALANCE',
-            409,
-          )
+      return { transactions: transactions as any }
+    } catch (error) {
+      throw handlePrismaError(error)
+    }
+  }),
+
+  request: implement(transactionsContract.request).handler(async ({ input, context }) => {
+    try {
+      const payload = (context as any)?.user
+      if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
+
+      const amount = parseAmount(input.amount)
+
+      const transaction = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const balance = await tx.userBalance.upsert({
+          where: { userId: payload.id },
+          update: {},
+          create: { userId: payload.id },
+        })
+
+        if (input.type === TransactionType.WITHDRAWAL) {
+          if (balance.available.lt(amount)) {
+            throw new AppError(
+              'You do not have enough balance to withdraw this amount.',
+              'WITHDRAWAL_INSUFFICIENT_BALANCE',
+              409,
+            )
+          }
+
+          await tx.userBalance.update({
+            where: { userId: payload.id },
+            data: {
+              available: { decrement: amount },
+              pending: { increment: amount },
+            },
+          })
         }
 
-        await tx.userBalance.update({
-          where: { userId: payload.id },
+        return tx.transaction.create({
           data: {
-            available: { decrement: amount },
-            pending: { increment: amount },
+            userId: payload.id,
+            type: input.type,
+            amount,
+            status: TransactionStatus.PENDING,
+            metadata: { requestedAt: new Date().toISOString() },
           },
         })
-      }
-
-      return tx.transaction.create({
-        data: {
-          userId: payload.id,
-          type: input.type,
-          amount,
-          status: TransactionStatus.PENDING,
-          metadata: { requestedAt: new Date().toISOString() },
-        },
       })
-    })
 
-    await AuditService.log({
-      adminId: payload.id,
-      action: 'CREATE_TRANSACTION_REQUEST',
-      entity: 'transaction',
-      entityId: transaction.id,
-      metadata: { type: input.type, amount: amount.toString() },
-    })
+      await AuditService.log({
+        adminId: payload.id,
+        action: 'CREATE_TRANSACTION_REQUEST',
+        entity: 'transaction',
+        entityId: transaction.id,
+        metadata: { type: input.type, amount: amount.toString() },
+      })
 
-    return { transaction: transaction as any }
+      return { transaction: transaction as any }
+    } catch (error) {
+      throw handlePrismaError(error)
+    }
   }),
 
-  getById: implement(transactionsContract.getById).handler(async ({ input, context }: { input: any; context: any }) => {
-    const payload = (context as any)?.user
-    if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
+  getById: implement(transactionsContract.getById).handler(async ({ input, context }) => {
+    try {
+      const payload = (context as any)?.user
+      if (!payload) throw new AppError('Authentication required.', 'UNAUTHORIZED', 401)
 
-    const transaction = await prisma.transaction.findUnique({ where: { id: input.id } })
+      const transaction = await prisma.transaction.findUnique({ where: { id: input.id } })
 
-    if (!transaction || (transaction.userId !== payload.id && payload.role !== 'ADMIN')) {
-      throw new AppError('Transaction not found.', 'NOT_FOUND', 404)
+      if (!transaction || (transaction.userId !== payload.id && payload.role !== 'ADMIN')) {
+        throw new AppError('Transaction not found.', 'NOT_FOUND', 404)
+      }
+
+      return { transaction: transaction as any }
+    } catch (error) {
+      throw handlePrismaError(error)
     }
-
-    return { transaction: transaction as any }
   }),
 })
