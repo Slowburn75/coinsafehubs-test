@@ -13,7 +13,7 @@ export const auditRouter = implement(adminAuditContract).router({
                     skip,
                     take: limit,
                     orderBy: { createdAt: 'desc' },
-                    include: { user: { select: { email: true } } }
+                    include: { user: { select: { email: true, fullName: true } } }
                 }),
                 prisma.auditLog.count()
             ]);
@@ -31,7 +31,9 @@ export const auditRouter = implement(adminAuditContract).router({
     }),
     export: implement(adminAuditContract.export).handler(async () => {
         try {
-            const logs = await prisma.auditLog.findMany();
+            const logs = await prisma.auditLog.findMany({
+                include: { user: { select: { email: true } } }
+            });
             const csv = CSVExport.formatAuditLogs(logs);
             return { csv };
         }

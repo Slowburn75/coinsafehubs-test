@@ -6,20 +6,20 @@ import { AppError, handlePrismaError } from '../utils/errors'
 export const investmentsRouter = implement(investmentsContract).router({
     create: implement(investmentsContract.create).handler(async ({ input, context }) => {
         try {
-            const payload = (context as any)?.user
-            if (!payload) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401)
+            const payload = (context as any)?.user;
+            if (!payload) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
 
             const plan = await prisma.investmentPlan.findUnique({
                 where: { id: input.planId }
-            })
+            });
 
             if (!plan || !plan.isActive) {
-                throw new AppError('Investment plan not found or inactive', 'NOT_FOUND', 404)
+                throw new AppError('Investment plan not found or inactive', 'NOT_FOUND', 404);
             }
 
-            const amount = Number(input.amount)
+            const amount = Number(input.amount);
             if (amount < Number(plan.minimumAmount) || amount > Number(plan.maximumAmount)) {
-                throw new AppError('Amount outside plan limits', 'BAD_REQUEST', 400)
+                throw new AppError('Amount outside plan limits', 'BAD_REQUEST', 400);
             }
 
             const investment = await prisma.investment.create({
@@ -30,48 +30,48 @@ export const investmentsRouter = implement(investmentsContract).router({
                     roi: plan.roiPercent
                 },
                 include: { plan: true }
-            })
+            });
 
-            return { investment: investment as any }
+            return { investment: investment as any };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     list: implement(investmentsContract.list).handler(async ({ context }) => {
         try {
-            const payload = (context as any)?.user
-            if (!payload) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401)
+            const payload = (context as any)?.user;
+            if (!payload) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
 
             const investments = await prisma.investment.findMany({
                 where: { userId: payload.id },
                 include: { plan: true },
                 orderBy: { createdAt: 'desc' }
-            })
+            });
 
-            return { investments: investments as any }
+            return { investments: investments as any };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     getById: implement(investmentsContract.getById).handler(async ({ input, context }) => {
         try {
-            const payload = (context as any)?.user
-            if (!payload) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401)
+            const payload = (context as any)?.user;
+            if (!payload) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
 
             const investment = await prisma.investment.findUnique({
                 where: { id: input.id },
                 include: { plan: true }
-            })
+            });
 
             if (!investment || (investment.userId !== payload.id && payload.role !== 'ADMIN')) {
-                throw new AppError('Investment not found', 'NOT_FOUND', 404)
+                throw new AppError('Investment not found', 'NOT_FOUND', 404);
             }
 
-            return { investment: investment as any }
+            return { investment: investment as any };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     })
 })

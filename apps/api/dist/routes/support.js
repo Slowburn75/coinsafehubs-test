@@ -30,7 +30,7 @@ export const supportRouter = implement(supportContract).router({
                 where: user.role === 'ADMIN' ? undefined : { userId: user.id },
                 orderBy: { createdAt: 'desc' }
             });
-            return { tickets };
+            return { tickets: tickets };
         }
         catch (error) {
             throw handlePrismaError(error);

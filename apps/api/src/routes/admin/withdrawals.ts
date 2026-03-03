@@ -9,13 +9,13 @@ import { TransactionSource, TransactionStatus, TransactionType } from '@repo/db'
 export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
     list: implement(adminWithdrawalsContract.list).handler(async ({ input }) => {
         try {
-            const { page, limit, status } = input
-            const skip = (page - 1) * limit
+            const { page, limit, status } = input;
+            const skip = (page - 1) * limit;
 
             const where = {
                 type: TransactionType.WITHDRAWAL,
                 ...(status && { status }),
-            }
+            };
 
             const [withdrawals, total] = await Promise.all([
                 prisma.transaction.findMany({
@@ -26,7 +26,7 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                     include: { user: { select: { email: true } } }
                 }),
                 prisma.transaction.count({ where })
-            ])
+            ]);
 
             return {
                 data: withdrawals as any,
@@ -34,22 +34,22 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit),
-            }
+            };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     approve: implement(adminWithdrawalsContract.approve).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
+            const admin = (context as any).user;
 
             const txRecord = await prisma.transaction.findUnique({
                 where: { id: input.transactionId }
-            })
+            });
 
             if (!txRecord || txRecord.status !== TransactionStatus.PENDING) {
-                throw new AppError('Transaction not found or not pending', 'NOT_FOUND', 404)
+                throw new AppError('Transaction not found or not pending', 'NOT_FOUND', 404);
             }
 
             await BalanceService.debit({
@@ -59,12 +59,12 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                 source: TransactionSource.USER,
                 reference: txRecord.reference,
                 adminNote: `Approved by admin ${admin.id}`,
-            })
+            });
 
             await prisma.transaction.update({
                 where: { id: input.transactionId },
                 data: { status: TransactionStatus.COMPLETED }
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
@@ -72,17 +72,17 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                 entity: 'transaction',
                 entityId: input.transactionId,
                 after: { status: TransactionStatus.COMPLETED }
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     reject: implement(adminWithdrawalsContract.reject).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
+            const admin = (context as any).user;
 
             await prisma.transaction.update({
                 where: { id: input.transactionId, status: TransactionStatus.PENDING },
@@ -90,7 +90,7 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                     status: TransactionStatus.REJECTED,
                     adminNote: input.reason
                 }
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
@@ -98,17 +98,17 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                 entity: 'transaction',
                 entityId: input.transactionId,
                 metadata: { reason: input.reason }
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     flag: implement(adminWithdrawalsContract.flag).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
+            const admin = (context as any).user;
 
             await prisma.transaction.update({
                 where: { id: input.transactionId },
@@ -116,7 +116,7 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                     flagged: true,
                     adminNote: input.note
                 }
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
@@ -124,11 +124,11 @@ export const withdrawalsRouter = implement(adminWithdrawalsContract).router({
                 entity: 'transaction',
                 entityId: input.transactionId,
                 metadata: { note: input.note }
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     })
 })

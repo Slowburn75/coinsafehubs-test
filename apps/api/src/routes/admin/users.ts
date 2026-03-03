@@ -10,14 +10,14 @@ import { generateTemporaryPassword, hashPassword } from '../../lib/bcrypt'
 export const usersRouter = implement(adminUsersContract).router({
     list: implement(adminUsersContract.list).handler(async ({ input }) => {
         try {
-            const { page, limit, role, kycStatus, isActive } = input
-            const skip = (page - 1) * limit
+            const { page, limit, role, kycStatus, isActive } = input;
+            const skip = (page - 1) * limit;
 
             const where = {
                 ...(role && { role }),
                 ...(kycStatus && { kycStatus }),
                 ...(isActive !== undefined && { isActive }),
-            }
+            };
 
             const [users, total] = await Promise.all([
                 prisma.user.findMany({
@@ -28,7 +28,7 @@ export const usersRouter = implement(adminUsersContract).router({
                     include: { balance: true }
                 }),
                 prisma.user.count({ where })
-            ])
+            ]);
 
             return {
                 data: users as any,
@@ -36,9 +36,9 @@ export const usersRouter = implement(adminUsersContract).router({
                 limit,
                 total,
                 totalPages: Math.ceil(total / limit),
-            }
+            };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
@@ -53,9 +53,9 @@ export const usersRouter = implement(adminUsersContract).router({
                     tickets: true,
                     auditLogs: { take: 10, orderBy: { createdAt: 'desc' } }
                 }
-            })
+            });
 
-            if (!user) throw new AppError('User not found', 'NOT_FOUND', 404)
+            if (!user) throw new AppError('User not found', 'NOT_FOUND', 404);
 
             return {
                 user: user as any,
@@ -63,22 +63,22 @@ export const usersRouter = implement(adminUsersContract).router({
                 transactions: user.transactions as any,
                 tickets: user.tickets as any,
                 auditLogs: user.auditLogs as any,
-            }
+            };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     editBalance: implement(adminUsersContract.editBalance).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
+            const admin = (context as any).user;
 
             await BalanceService.editBalance({
                 userId: input.userId,
                 newBalances: input.balances,
                 adminId: admin.id,
                 reason: input.reason
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
@@ -86,48 +86,48 @@ export const usersRouter = implement(adminUsersContract).router({
                 entity: 'user',
                 entityId: input.userId,
                 metadata: { balances: input.balances, reason: input.reason }
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     freeze: implement(adminUsersContract.freeze).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
-            if (admin.id === input.userId) throw new AppError('Cannot freeze your own account', 'BAD_REQUEST', 400)
+            const admin = (context as any).user;
+            if (admin.id === input.userId) throw new AppError('Cannot freeze your own account', 'BAD_REQUEST', 400);
 
             await prisma.user.update({
                 where: { id: input.userId },
                 data: { isActive: !input.freeze }
-            })
+            });
 
             // Invalidate all tokens for this user
-            await prisma.refreshToken.deleteMany({ where: { userId: input.userId } })
+            await prisma.refreshToken.deleteMany({ where: { userId: input.userId } });
 
             await AuditService.log({
                 adminId: admin.id,
                 action: input.freeze ? 'FREEZE_ACCOUNT' : 'UNFREEZE_ACCOUNT',
                 entity: 'user',
                 entityId: input.userId
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     updateKyc: implement(adminUsersContract.updateKyc).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
+            const admin = (context as any).user;
 
             await prisma.user.update({
                 where: { id: input.userId },
                 data: { kycStatus: input.status }
-            })
+            });
 
             if (input.adminNote) {
                 await prisma.adminNote.create({
@@ -137,7 +137,7 @@ export const usersRouter = implement(adminUsersContract).router({
                         targetId: input.userId,
                         note: input.adminNote,
                     }
-                })
+                });
             }
 
             await AuditService.log({
@@ -146,23 +146,23 @@ export const usersRouter = implement(adminUsersContract).router({
                 entity: 'user',
                 entityId: input.userId,
                 metadata: { status: input.status, note: input.adminNote }
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     updateRole: implement(adminUsersContract.updateRole).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
-            if (admin.id === input.userId) throw new AppError('Cannot demote yourself', 'BAD_REQUEST', 400)
+            const admin = (context as any).user;
+            if (admin.id === input.userId) throw new AppError('Cannot demote yourself', 'BAD_REQUEST', 400);
 
             await prisma.user.update({
                 where: { id: input.userId },
                 data: { role: input.role }
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
@@ -170,68 +170,68 @@ export const usersRouter = implement(adminUsersContract).router({
                 entity: 'user',
                 entityId: input.userId,
                 metadata: { newRole: input.role }
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     delete: implement(adminUsersContract.delete).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
-            if (admin.id === input.userId) throw new AppError('Cannot delete yourself', 'BAD_REQUEST', 400)
+            const admin = (context as any).user;
+            if (admin.id === input.userId) throw new AppError('Cannot delete yourself', 'BAD_REQUEST', 400);
 
             await prisma.user.update({
                 where: { id: input.userId },
                 data: { isActive: false }
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
                 action: 'SOFT_DELETE_USER',
                 entity: 'user',
                 entityId: input.userId
-            })
+            });
 
-            return { success: true }
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     resetPassword: implement(adminUsersContract.resetPassword).handler(async ({ input, context }) => {
         try {
-            const admin = (context as any).user
-            const tempPassword = generateTemporaryPassword()
-            const hashed = await hashPassword(tempPassword)
+            const admin = (context as any).user;
+            const tempPassword = generateTemporaryPassword();
+            const hashed = await hashPassword(tempPassword);
 
             await prisma.user.update({
                 where: { id: input.userId },
                 data: { password: hashed }
-            })
+            });
 
             await AuditService.log({
                 adminId: admin.id,
                 action: 'RESET_PASSWORD',
                 entity: 'user',
                 entityId: input.userId
-            })
+            });
 
-            return { temporaryPassword: tempPassword }
+            return { temporaryPassword: tempPassword };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     export: implement(adminUsersContract.export).handler(async () => {
         try {
-            const users = await prisma.user.findMany()
-            const csv = CSVExport.formatUsers(users)
-            return { csv }
+            const users = await prisma.user.findMany();
+            const csv = CSVExport.formatUsers(users);
+            return { csv };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     })
 })

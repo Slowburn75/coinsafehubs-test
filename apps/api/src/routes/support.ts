@@ -6,8 +6,8 @@ import { AppError, handlePrismaError } from '../utils/errors'
 export const supportRouter = implement(supportContract).router({
     createTicket: implement(supportContract.createTicket).handler(async ({ input, context }) => {
         try {
-            const user = (context as any)?.user
-            if (!user) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401)
+            const user = (context as any)?.user;
+            if (!user) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
 
             await prisma.supportTicket.create({
                 data: {
@@ -15,43 +15,43 @@ export const supportRouter = implement(supportContract).router({
                     subject: input.subject,
                     message: input.message,
                 }
-            })
-            return { success: true }
+            });
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     listTickets: implement(supportContract.listTickets).handler(async ({ context }) => {
         try {
-            const user = (context as any)?.user
-            if (!user) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401)
+            const user = (context as any)?.user;
+            if (!user) throw new AppError('Unauthorized', 'UNAUTHORIZED', 401);
 
             const tickets = await prisma.supportTicket.findMany({
                 where: user.role === 'ADMIN' ? undefined : { userId: user.id },
                 orderBy: { createdAt: 'desc' }
-            })
-            return { tickets }
+            });
+            return { tickets: tickets as any };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     }),
 
     updateTicket: implement(supportContract.updateTicket).handler(async ({ input, context }) => {
         try {
-            const user = (context as any)?.user
-            if (!user || user.role !== 'ADMIN') throw new AppError('Forbidden', 'FORBIDDEN', 403)
+            const user = (context as any)?.user;
+            if (!user || user.role !== 'ADMIN') throw new AppError('Forbidden', 'FORBIDDEN', 403);
 
-            const existing = await prisma.supportTicket.findUnique({ where: { id: input.ticketId } })
-            if (!existing) throw new AppError('Ticket not found.', 'NOT_FOUND', 404)
+            const existing = await prisma.supportTicket.findUnique({ where: { id: input.ticketId } });
+            if (!existing) throw new AppError('Ticket not found.', 'NOT_FOUND', 404);
 
             await prisma.supportTicket.update({
                 where: { id: input.ticketId },
                 data: { status: input.status }
-            })
-            return { success: true }
+            });
+            return { success: true };
         } catch (error) {
-            throw handlePrismaError(error)
+            throw handlePrismaError(error);
         }
     })
 })
