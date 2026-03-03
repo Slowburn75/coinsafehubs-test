@@ -26,6 +26,9 @@ import { orpc } from '@/lib/orpc'
 
 const SignupSchema = z.object({
   email: z.string().email(),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  fullName: z.string().min(1, "Full name is required"),
+  country: z.string().min(1, "Country is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   passwordConfirm: z.string()
 }).refine((data) => data.password === data.passwordConfirm, {
@@ -44,7 +47,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<SignupFormValues>({
     resolver: zodResolver(SignupSchema),
-    defaultValues: { email: '', password: '', passwordConfirm: '' }
+    defaultValues: { email: '', username: '', fullName: '', country: '', password: '', passwordConfirm: '' }
   })
 
   const passwordVal = watch('password')
@@ -94,7 +97,13 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
 
   const onSubmit = (data: SignupFormValues) => {
     setErrorMsg('')
-    registerMutation.mutate({ email: data.email, password: data.password })
+    registerMutation.mutate({
+      email: data.email,
+      password: data.password,
+      username: data.username,
+      fullName: data.fullName,
+      country: data.country
+    })
   }
 
   return (
@@ -115,13 +124,61 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="matthew@gmail.com"
+                  placeholder="[EMAIL_ADDRESS]"
                   aria-invalid={!!errors.email}
                   {...register('email')}
                 />
                 {errors.email && (
                   <FieldDescription className="text-red-500">
                     {errors.email.message}
+                  </FieldDescription>
+                )}
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="username">Username</FieldLabel>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="john_doe"
+                  aria-invalid={!!errors.username}
+                  {...register('username')}
+                />
+                {errors.username && (
+                  <FieldDescription className="text-red-500">
+                    {errors.username.message}
+                  </FieldDescription>
+                )}
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="fullName">Full Name</FieldLabel>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="John Doe"
+                  aria-invalid={!!errors.fullName}
+                  {...register('fullName')}
+                />
+                {errors.fullName && (
+                  <FieldDescription className="text-red-500">
+                    {errors.fullName.message}
+                  </FieldDescription>
+                )}
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="country">Country</FieldLabel>
+                <Input
+                  id="country"
+                  type="text"
+                  placeholder="United States"
+                  aria-invalid={!!errors.country}
+                  {...register('country')}
+                />
+                {errors.country && (
+                  <FieldDescription className="text-red-500">
+                    {errors.country.message}
                   </FieldDescription>
                 )}
               </Field>

@@ -51,6 +51,9 @@ export const authRouter = implement(authContract).router({
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        country: user.country,
         role: user.role,
         kycStatus: user.kycStatus,
         isActive: user.isActive,
@@ -67,7 +70,15 @@ export const authRouter = implement(authContract).router({
 
     const hashedPassword = await hashPassword(password)
     const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const created = await tx.user.create({ data: { email, password: hashedPassword } })
+      const created = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          username: input.username,
+          fullName: input.fullName,
+          country: input.country,
+        },
+      })
       await tx.userBalance.create({ data: { userId: created.id } })
       return created
     })
@@ -76,6 +87,9 @@ export const authRouter = implement(authContract).router({
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        country: user.country,
         role: user.role,
         kycStatus: user.kycStatus,
         isActive: user.isActive,
@@ -95,6 +109,9 @@ export const authRouter = implement(authContract).router({
       user: {
         id: user.id,
         email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        country: user.country,
         role: user.role,
         kycStatus: user.kycStatus,
         isActive: user.isActive,

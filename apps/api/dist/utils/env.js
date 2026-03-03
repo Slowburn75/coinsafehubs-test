@@ -6,7 +6,7 @@ const envSchema = z.object({
     JWT_REFRESH_SECRET: z.string().min(32).optional(),
     ACCESS_TOKEN_TTL: z.string().default('15m'),
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(30).default(7),
-    ALLOWED_ORIGIN: z.string().default('http://localhost:3000'),
+    ALLOWED_ORIGIN: z.string().default('https://coinsafehubs-test.onrender.com'),
     COOKIE_DOMAIN: z.string().optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });

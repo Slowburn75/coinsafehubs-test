@@ -17,6 +17,9 @@ import { prisma, Decimal, TransactionStatus, TransactionType } from '@repo/db';
 const app = new Hono();
 const SignupSchema = z.object({
     email: z.string().email(),
+    username: z.string().min(3),
+    fullName: z.string().min(1),
+    country: z.string().min(1),
     password: z.string().min(8),
     firstName: z.string().min(1).max(80).optional(),
     lastName: z.string().min(1).max(80).optional(),
@@ -64,6 +67,9 @@ app.post('/auth/signup', authRateLimit, async (c) => {
             data: {
                 email: input.email,
                 password: hashed,
+                username: input.username,
+                fullName: input.fullName,
+                country: input.country,
                 firstName: input.firstName,
                 lastName: input.lastName,
                 phone: input.phone,
@@ -184,4 +190,4 @@ app.onError((err, c) => {
     }
     return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : err.message } }, 500);
 });
-serve({ fetch: app.fetch, port: 3001 });
+serve({ fetch: app.fetch, port: Number(process.env.PORT) || 3001 });

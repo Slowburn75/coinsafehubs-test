@@ -25,6 +25,9 @@ export const UserBalanceSchema = z.object({
 export const UserSchema = z.object({
     id: z.string(),
     email: z.string().email(),
+    username: z.string().nullable().optional(),
+    fullName: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
     role: RoleSchema,
     kycStatus: KycStatusSchema,
     isActive: z.boolean(),
@@ -37,7 +40,13 @@ export const LoginSchema = z.object({
     password: z.string().min(8),
 });
 
-export const RegisterSchema = LoginSchema;
+export const RegisterSchema = z.object({
+    email: z.string().email(),
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    fullName: z.string().min(1, "Full name is required"),
+    country: z.string().min(1, "Country is required"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+});
 
 export const InvestmentPlanSchema = z.object({
     id: z.string(),

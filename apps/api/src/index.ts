@@ -19,6 +19,9 @@ const app = new Hono<{ Variables: { user: any } }>()
 
 const SignupSchema = z.object({
   email: z.string().email(),
+  username: z.string().min(3),
+  fullName: z.string().min(1),
+  country: z.string().min(1),
   password: z.string().min(8),
   firstName: z.string().min(1).max(80).optional(),
   lastName: z.string().min(1).max(80).optional(),
@@ -70,6 +73,9 @@ app.post('/auth/signup', authRateLimit, async (c) => {
       data: {
         email: input.email,
         password: hashed,
+        username: input.username,
+        fullName: input.fullName,
+        country: input.country,
         firstName: input.firstName,
         lastName: input.lastName,
         phone: input.phone,
