@@ -208,4 +208,4 @@ app.onError((err, c) => {
   return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : err.message } }, 500)
 })
 
-serve({ fetch: app.fetch, port: 3001 })
+serve({ fetch: app.fetch, port: Number(process.env.PORT) || 3001 })
