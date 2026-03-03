@@ -100,9 +100,9 @@ export const authRouter = implement(authContract).router({
           isActive: user.isActive,
           createdAt: user.createdAt,
         },
-      };
+      }
     } catch (error) {
-      throw handlePrismaError(error);
+      throw handlePrismaError(error)
     }
   }),
 
