@@ -1,4 +1,3 @@
-```json
 {
     "$schema": "https://turbo.build/schema.json",
     "ui": "tui",
@@ -47,4 +46,3 @@
         }
     }
 }
-```
