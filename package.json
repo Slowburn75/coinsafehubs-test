@@ -11,7 +11,7 @@
     ],
     "scripts": {
         "dev": "turbo dev",
-        "build": "bun run db:generate && turbo build",
+        "build": "bun run db:push && bun run db:generate && turbo build",
         "lint": "turbo lint",
         "typecheck": "turbo typecheck",
         "db:generate": "turbo db:generate",
