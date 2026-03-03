@@ -88,21 +88,53 @@ export const authRouter = implement(authContract).router({
         return created
       })
 
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          fullName: user.fullName,
-          country: user.country,
-          role: user.role,
-          kycStatus: user.kycStatus,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-        },
+    const hashedPassword = await hashPassword(password)
+    let user
+    try {
+      user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const created = await tx.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            username: input.username,
+            fullName: input.fullName,
+            country: input.country,
+          },
+        })
+        await tx.userBalance.create({ data: { userId: created.id } })
+        return created
+      })
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = Array.isArray(error.meta?.target) ? error.meta?.target.join(', ') : String(error.meta?.target ?? '')
+          if (target.includes('username')) {
+            throw new AppError('Username already in use.', 'AUTH_USERNAME_EXISTS', 409)
+          }
+          if (target.includes('email')) {
+            throw new AppError('Email already in use.', 'AUTH_EMAIL_EXISTS', 409)
+          }
+          throw new AppError('Account already exists.', 'AUTH_ACCOUNT_EXISTS', 409)
+        }
+        if (error.code === 'P2022') {
+          throw new AppError('Registration is temporarily unavailable due to a mismatch. Please contact support.', 'AUTH_SCHEMA_MISMATCH', 503)
+        }
       }
-    } catch (error) {
-      throw handlePrismaError(error)
+      throw error
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        fullName: user.fullName,
+        country: user.country,
+        role: user.role,
+        kycStatus: user.kycStatus,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+      },
     }
   }),
 
