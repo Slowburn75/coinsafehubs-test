@@ -1,10 +1,8 @@
+```json
 {
     "$schema": "https://turbo.build/schema.json",
     "ui": "tui",
     "tasks": {
-        "db:generate": {
-            "cache": false
-        },
         "build": {
             "dependsOn": [
                 "^build"
@@ -30,13 +28,23 @@
             "persistent": true
         },
         "db:generate": {
-            "cache": false
+            "cache": false,
+            "env": [
+                "DATABASE_URL"
+            ]
         },
         "db:push": {
-            "cache": false
+            "cache": false,
+            "env": [
+                "DATABASE_URL"
+            ]
         },
         "db:seed": {
-            "cache": false
+            "cache": false,
+            "env": [
+                "DATABASE_URL"
+            ]
         }
     }
 }
+```
