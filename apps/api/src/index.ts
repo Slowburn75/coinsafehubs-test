@@ -41,6 +41,34 @@ const parseBody = async <T>(req: Request, schema: z.ZodSchema<T>) => {
   return parsed.data
 }
 
+
+const routeMethodAllowlist = new Map<string, readonly string[]>([
+  ['/auth/signup', ['POST', 'OPTIONS']],
+  ['/auth/register', ['POST', 'OPTIONS']],
+  ['/auth/login', ['POST', 'OPTIONS']],
+  ['/auth/me', ['POST', 'OPTIONS']],
+  ['/auth/logout', ['POST', 'OPTIONS']],
+  ['/wallet/connect', ['POST', 'OPTIONS']],
+  ['/admin/approve', ['POST', 'OPTIONS']],
+  ['/admin/reject', ['POST', 'OPTIONS']],
+  ['/user/profile', ['GET', 'OPTIONS']],
+  ['/account/summary', ['GET', 'OPTIONS']],
+  ['/transactions', ['GET', 'OPTIONS']],
+  ['/admin/transactions', ['GET', 'OPTIONS']],
+])
+
+const methodNotSupportedResponse = (c: any, allowedMethods: readonly string[]) => {
+  c.header('Allow', allowedMethods.join(', '))
+  return c.json({
+    success: false,
+    error: {
+      code: 'METHOD_NOT_SUPPORTED',
+      message: `Method ${c.req.method} is not supported for ${new URL(c.req.url).pathname}.`,
+      allowedMethods,
+    },
+  }, 405)
+}
+
 app.get('/', (c) => c.text('OK'))
 app.get('/health', (c) => c.json({ status: 'OK', timestamp: new Date().toISOString() }))
 
@@ -53,10 +81,29 @@ app.use('*', cors({
     return env.IS_PROD ? '' : origin
   },
   credentials: true,
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }))
 app.use('*', logger())
 app.use('*', requestId())
 app.use('*', auditLog)
+
+
+app.use('*', async (c, next) => {
+  const pathname = new URL(c.req.url).pathname
+  const allowedMethods = routeMethodAllowlist.get(pathname)
+  if (!allowedMethods) {
+    return next()
+  }
+  if (!allowedMethods.includes(c.req.method)) {
+    return methodNotSupportedResponse(c, allowedMethods)
+  }
+  if (c.req.method === 'OPTIONS') {
+    c.header('Allow', allowedMethods.join(', '))
+    return c.body(null, 204)
+  }
+  return next()
+})
 
 const rpcHandler = new RPCHandler(appRouter)
 
@@ -197,6 +244,16 @@ app.all('/api/*', async (c) => {
 app.all('/auth/*', async (c) => {
   const result = await rpcHandler.handle(c.req.raw, { context: { c, user: c.get('user') } })
   return result.matched ? result.response : c.notFound()
+})
+
+app.notFound((c) => {
+  return c.json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: `Route ${new URL(c.req.url).pathname} was not found.`,
+    },
+  }, 404)
 })
 
 app.onError((err, c) => {
