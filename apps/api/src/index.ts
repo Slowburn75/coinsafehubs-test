@@ -268,7 +268,30 @@ app.onError((err, c) => {
     return c.json({ success: false, error: { code: err.code, message: err.message } }, err.statusCode as any)
   }
 
-  return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : err.message } }, 500)
+  const prismaError = mapPrismaError(err)
+  if (prismaError) {
+    return c.json({ success: false, error: { code: prismaError.code, message: prismaError.message } }, prismaError.status as any)
+  }
+
+  return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : (err as Error).message } }, 500)
 })
 
-serve({ fetch: app.fetch, port: Number(process.env.PORT) || 3001 })
+const start = async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    console.info('Database connection check: OK')
+  } catch (error) {
+    const prismaError = mapPrismaError(error)
+    if (prismaError) {
+      console.error(`[startup] ${prismaError.code}: ${prismaError.message}`)
+    } else {
+      console.error('[startup] Database connectivity check failed:', error)
+    }
+  }
+
+  const port = env.PORT || Number(process.env.PORT) || 3001
+  serve({ fetch: app.fetch, port })
+  console.info(`API server started on port ${port}`)
+}
+
+void start()
