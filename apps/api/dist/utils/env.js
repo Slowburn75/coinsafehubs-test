@@ -10,6 +10,7 @@ const envSchema = z.object({
     COOKIE_DOMAIN: z.string().optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     WEB_URL: z.string().default('https://coinsafehubs-test.onrender.com'),
+    PORT: z.coerce.number().default(3001),
 });
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
@@ -22,4 +23,5 @@ export const env = {
     JWT_REFRESH_SECRET: raw.JWT_REFRESH_SECRET ?? raw.JWT_SECRET,
     ALLOWED_ORIGINS: raw.ALLOWED_ORIGIN.split(',').map((v) => v.trim()).filter(Boolean),
     IS_PROD: raw.NODE_ENV === 'production',
+    PORT: raw.PORT,
 };

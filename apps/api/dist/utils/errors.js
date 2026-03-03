@@ -58,3 +58,18 @@ export class DatabaseError extends AppError {
         super(message, 'DATABASE_ERROR', 500, isPublic);
     }
 }
+export function mapPrismaError(error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        switch (error.code) {
+            case 'P2002':
+                return { code: 'CONFLICT', message: 'A record with this value already exists.', status: 409 };
+            case 'P2025':
+                return { code: 'NOT_FOUND', message: 'The requested record was not found.', status: 404 };
+            case 'P2003':
+                return { code: 'BAD_REQUEST', message: 'Foreign key constraint failed.', status: 400 };
+            default:
+                return { code: 'DATABASE_ERROR', message: `Database error: ${error.code}`, status: 500 };
+        }
+    }
+    return null;
+}

@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
 import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
-import { AppError } from './utils/errors';
+import { AppError, mapPrismaError } from './utils/errors';
 import { ZodError, z } from 'zod';
 import { formatZodError } from './utils/validation';
 import { env } from './utils/env';
@@ -37,6 +37,31 @@ const parseBody = async (req, schema) => {
         throw parsed.error;
     return parsed.data;
 };
+const routeMethodAllowlist = new Map([
+    ['/auth/signup', ['POST', 'OPTIONS']],
+    ['/auth/register', ['POST', 'OPTIONS']],
+    ['/auth/login', ['POST', 'OPTIONS']],
+    ['/auth/me', ['POST', 'OPTIONS']],
+    ['/auth/logout', ['POST', 'OPTIONS']],
+    ['/wallet/connect', ['POST', 'OPTIONS']],
+    ['/admin/approve', ['POST', 'OPTIONS']],
+    ['/admin/reject', ['POST', 'OPTIONS']],
+    ['/user/profile', ['GET', 'OPTIONS']],
+    ['/account/summary', ['GET', 'OPTIONS']],
+    ['/transactions', ['GET', 'OPTIONS']],
+    ['/admin/transactions', ['GET', 'OPTIONS']],
+]);
+const methodNotSupportedResponse = (c, allowedMethods) => {
+    c.header('Allow', allowedMethods.join(', '));
+    return c.json({
+        success: false,
+        error: {
+            code: 'METHOD_NOT_SUPPORTED',
+            message: `Method ${c.req.method} is not supported for ${new URL(c.req.url).pathname}.`,
+            allowedMethods,
+        },
+    }, 405);
+};
 app.get('/', (c) => c.text('OK'));
 app.get('/health', (c) => c.json({ status: 'OK', timestamp: new Date().toISOString() }));
 app.use('*', secureHeaders());
@@ -50,10 +75,27 @@ app.use('*', cors({
         return env.IS_PROD ? '' : origin;
     },
     credentials: true,
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 app.use('*', logger());
 app.use('*', requestId());
 app.use('*', auditLog);
+app.use('*', async (c, next) => {
+    const pathname = new URL(c.req.url).pathname;
+    const allowedMethods = routeMethodAllowlist.get(pathname);
+    if (!allowedMethods) {
+        return next();
+    }
+    if (!allowedMethods.includes(c.req.method)) {
+        return methodNotSupportedResponse(c, allowedMethods);
+    }
+    if (c.req.method === 'OPTIONS') {
+        c.header('Allow', allowedMethods.join(', '));
+        return c.body(null, 204);
+    }
+    return next();
+});
 const rpcHandler = new RPCHandler(appRouter);
 app.post('/auth/signup', authRateLimit, async (c) => {
     const input = await parseBody(c.req.raw, SignupSchema);
@@ -81,7 +123,7 @@ app.post('/auth/signup', authRateLimit, async (c) => {
     });
     return c.json({ success: true, data: { id: user.id, email: user.email } }, 201);
 });
-// Existing oRPC auth routes remain 
+// Existing oRPC auth routes remain available
 app.use('/api/*', checkAuth);
 app.use('/auth/me', checkAuth);
 app.use('/auth/login', authRateLimit);
@@ -179,6 +221,15 @@ app.all('/auth/*', async (c) => {
     const result = await rpcHandler.handle(c.req.raw, { context: { c, user: c.get('user') } });
     return result.matched ? result.response : c.notFound();
 });
+app.notFound((c) => {
+    return c.json({
+        success: false,
+        error: {
+            code: 'NOT_FOUND',
+            message: `Route ${new URL(c.req.url).pathname} was not found.`,
+        },
+    }, 404);
+});
 app.onError((err, c) => {
     const isProd = env.NODE_ENV === 'production';
     if (err instanceof ZodError) {
@@ -188,6 +239,28 @@ app.onError((err, c) => {
     if (err instanceof AppError) {
         return c.json({ success: false, error: { code: err.code, message: err.message } }, err.statusCode);
     }
+    const prismaError = mapPrismaError(err);
+    if (prismaError) {
+        return c.json({ success: false, error: { code: prismaError.code, message: prismaError.message } }, prismaError.status);
+    }
     return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : err.message } }, 500);
 });
-serve({ fetch: app.fetch, port: Number(process.env.PORT) || 3001 });
+const start = async () => {
+    try {
+        await prisma.$queryRaw `SELECT 1`;
+        console.info('Database connection check: OK');
+    }
+    catch (error) {
+        const prismaError = mapPrismaError(error);
+        if (prismaError) {
+            console.error(`[startup] ${prismaError.code}: ${prismaError.message}`);
+        }
+        else {
+            console.error('[startup] Database connectivity check failed:', error);
+        }
+    }
+    const port = env.PORT || Number(process.env.PORT) || 3001;
+    serve({ fetch: app.fetch, port });
+    console.info(`API server started on port ${port}`);
+};
+void start();
