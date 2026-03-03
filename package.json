@@ -18,7 +18,7 @@
         "db:push": "turbo db:push",
         "db:seed": "turbo db:seed",
         "postinstall": "turbo db:generate",
-        "db:migrate:deploy": "cd packages/db && bun run db:migrate:deploy"
+        "db:migrate:deploy": "cd packages/db && bunx prisma migrate deploy"
     },
     "devDependencies": {
         "turbo": "latest",

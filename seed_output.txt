@@ -1,0 +1,42 @@
+$ turbo db:seed
+• turbo 2.8.10
+• Packages in scope: @repo/config, @repo/db, @repo/types, api, web
+• Running db:seed in 5 packages
+• Remote caching disabled
+@repo/db:db:seed: cache bypass, force executing d28146430dc272ed
+@repo/db:db:seed: $ tsx prisma/seed.ts
+@repo/db:db:seed: PrismaClientInitializationError: 
+@repo/db:db:seed: Invalid `prisma.investmentPlan.upsert()` invocation in
+@repo/db:db:seed: /Users/slowburn/Desktop/Projects/coinsafehubs-test/packages/db/prisma/seed.ts:9:53
+@repo/db:db:seed: 
+@repo/db:db:seed:   6 const passwordHash = "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.VrZiPTUn.Iq1mXxe" // 'password123'
+@repo/db:db:seed:   7 
+@repo/db:db:seed:   8 // 1. Create Investment Plans
+@repo/db:db:seed: → 9 const starterPlan = await prisma.investmentPlan.upsert(
+@repo/db:db:seed: error: Environment variable not found: DATABASE_URL.
+@repo/db:db:seed:   -->  schema.prisma:3
+@repo/db:db:seed:    | 
+@repo/db:db:seed:  2 |   provider = "postgresql"
+@repo/db:db:seed:  3 |   url      = env("DATABASE_URL")
+@repo/db:db:seed:    | 
+@repo/db:db:seed: 
+@repo/db:db:seed: Validation Error Count: 1
+@repo/db:db:seed:     at $n.handleRequestError (/Users/slowburn/Desktop/Projects/coinsafehubs-test/node_modules/.bun/@prisma+client@5.22.0+f01948e2630c7aba/node_modules/@prisma/client/runtime/library.js:121:7615)
+@repo/db:db:seed:     at $n.handleAndLogRequestError (/Users/slowburn/Desktop/Projects/coinsafehubs-test/node_modules/.bun/@prisma+client@5.22.0+f01948e2630c7aba/node_modules/@prisma/client/runtime/library.js:121:6623)
+@repo/db:db:seed:     at $n.request (/Users/slowburn/Desktop/Projects/coinsafehubs-test/node_modules/.bun/@prisma+client@5.22.0+f01948e2630c7aba/node_modules/@prisma/client/runtime/library.js:121:6307)
+@repo/db:db:seed:     at async l (/Users/slowburn/Desktop/Projects/coinsafehubs-test/node_modules/.bun/@prisma+client@5.22.0+f01948e2630c7aba/node_modules/@prisma/client/runtime/library.js:130:9633)
+@repo/db:db:seed:     at async main (/Users/slowburn/Desktop/Projects/coinsafehubs-test/packages/db/prisma/seed.ts:9:25) {
+@repo/db:db:seed:   clientVersion: '5.22.0',
+@repo/db:db:seed:   errorCode: undefined
+@repo/db:db:seed: }
+@repo/db:db:seed: error: script "db:seed" exited with code 1
+@repo/db:db:seed: ERROR: command finished with error: command (/Users/slowburn/Desktop/Projects/coinsafehubs-test/packages/db) /Users/slowburn/.bun/bin/bun run db:seed exited (1)
+@repo/db#db:seed: command (/Users/slowburn/Desktop/Projects/coinsafehubs-test/packages/db) /Users/slowburn/.bun/bin/bun run db:seed exited (1)
+
+ Tasks:    0 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    386ms 
+Failed:    @repo/db#db:seed
+
+ ERROR  run failed: command  exited (1)
+error: script "db:seed" exited with code 1
