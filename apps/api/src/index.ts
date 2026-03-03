@@ -41,6 +41,34 @@ const parseBody = async <T>(req: Request, schema: z.ZodSchema<T>) => {
   return parsed.data
 }
 
+
+const routeMethodAllowlist = new Map<string, readonly string[]>([
+  ['/auth/signup', ['POST', 'OPTIONS']],
+  ['/auth/register', ['POST', 'OPTIONS']],
+  ['/auth/login', ['POST', 'OPTIONS']],
+  ['/auth/me', ['POST', 'OPTIONS']],
+  ['/auth/logout', ['POST', 'OPTIONS']],
+  ['/wallet/connect', ['POST', 'OPTIONS']],
+  ['/admin/approve', ['POST', 'OPTIONS']],
+  ['/admin/reject', ['POST', 'OPTIONS']],
+  ['/user/profile', ['GET', 'OPTIONS']],
+  ['/account/summary', ['GET', 'OPTIONS']],
+  ['/transactions', ['GET', 'OPTIONS']],
+  ['/admin/transactions', ['GET', 'OPTIONS']],
+])
+
+const methodNotSupportedResponse = (c: any, allowedMethods: readonly string[]) => {
+  c.header('Allow', allowedMethods.join(', '))
+  return c.json({
+    success: false,
+    error: {
+      code: 'METHOD_NOT_SUPPORTED',
+      message: `Method ${c.req.method} is not supported for ${new URL(c.req.url).pathname}.`,
+      allowedMethods,
+    },
+  }, 405)
+}
+
 app.get('/', (c) => c.text('OK'))
 app.get('/health', (c) => c.json({ status: 'OK', timestamp: new Date().toISOString() }))
 
@@ -53,10 +81,29 @@ app.use('*', cors({
     return env.IS_PROD ? '' : origin
   },
   credentials: true,
+  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }))
 app.use('*', logger())
 app.use('*', requestId())
 app.use('*', auditLog)
+
+
+app.use('*', async (c, next) => {
+  const pathname = new URL(c.req.url).pathname
+  const allowedMethods = routeMethodAllowlist.get(pathname)
+  if (!allowedMethods) {
+    return next()
+  }
+  if (!allowedMethods.includes(c.req.method)) {
+    return methodNotSupportedResponse(c, allowedMethods)
+  }
+  if (c.req.method === 'OPTIONS') {
+    c.header('Allow', allowedMethods.join(', '))
+    return c.body(null, 204)
+  }
+  return next()
+})
 
 const rpcHandler = new RPCHandler(appRouter)
 
@@ -199,6 +246,44 @@ app.all('/auth/*', async (c) => {
   return result.matched ? result.response : c.notFound()
 })
 
+app.notFound((c) => {
+  return c.json({
+    success: false,
+    error: {
+      code: 'NOT_FOUND',
+      message: `Route ${new URL(c.req.url).pathname} was not found.`,
+    },
+  }, 404)
+})
+
+
+function mapPrismaError(err: unknown) {
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    return { status: 503, code: 'DATABASE_UNAVAILABLE', message: 'Database connection failed. Verify DATABASE_URL, network access, and SSL settings for Render Postgres.' }
+  }
+
+  if (err instanceof Prisma.PrismaClientRustPanicError) {
+    return { status: 500, code: 'DATABASE_ENGINE_PANIC', message: 'Database engine crashed while processing request.' }
+  }
+
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P1001') {
+      return { status: 503, code: 'DATABASE_UNREACHABLE', message: 'Cannot reach database server. Check DATABASE_URL host/port and Render network settings.' }
+    }
+    if (err.code === 'P1002') {
+      return { status: 504, code: 'DATABASE_TIMEOUT', message: 'Timed out while connecting to database.' }
+    }
+    if (err.code === 'P1011') {
+      return { status: 503, code: 'DATABASE_TLS_ERROR', message: 'TLS/SSL handshake failed for database connection. Ensure sslmode=require for Render Postgres.' }
+    }
+    if (err.code === 'P2021' || err.code === 'P2022') {
+      return { status: 503, code: 'DATABASE_SCHEMA_OUT_OF_SYNC', message: 'Database schema is out of sync with API. Run Prisma migrations before serving traffic.' }
+    }
+  }
+
+  return null
+}
+
 app.onError((err, c) => {
   const isProd = env.NODE_ENV === 'production'
 
@@ -211,7 +296,30 @@ app.onError((err, c) => {
     return c.json({ success: false, error: { code: err.code, message: err.message } }, err.statusCode as any)
   }
 
-  return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : err.message } }, 500)
+  const prismaError = mapPrismaError(err)
+  if (prismaError) {
+    return c.json({ success: false, error: { code: prismaError.code, message: prismaError.message } }, prismaError.status as any)
+  }
+
+  return c.json({ success: false, error: { code: 'INTERNAL_SERVER_ERROR', message: isProd ? 'An unexpected error occurred. Please try again later.' : (err as Error).message } }, 500)
 })
 
-serve({ fetch: app.fetch, port: Number(process.env.PORT) || 3001 })
+const start = async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    console.info('Database connection check: OK')
+  } catch (error) {
+    const prismaError = mapPrismaError(error)
+    if (prismaError) {
+      console.error(`[startup] ${prismaError.code}: ${prismaError.message}`)
+    } else {
+      console.error('[startup] Database connectivity check failed:', error)
+    }
+  }
+
+  const port = Number(process.env.PORT) || 3001
+  serve({ fetch: app.fetch, port })
+  console.info(`API server started on port ${port}`)
+}
+
+void start()
