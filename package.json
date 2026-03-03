@@ -11,13 +11,14 @@
     ],
     "scripts": {
         "dev": "turbo dev",
-        "build": "bun run db:push && bun run db:generate && turbo build",
+        "build": "bun run db:generate && turbo build",
         "lint": "turbo lint",
         "typecheck": "turbo typecheck",
         "db:generate": "turbo db:generate",
         "db:push": "turbo db:push",
         "db:seed": "turbo db:seed",
-        "postinstall": "turbo db:generate"
+        "postinstall": "turbo db:generate",
+        "db:migrate:deploy": "cd packages/db && bunx prisma migrate deploy"
     },
     "devDependencies": {
         "turbo": "latest",
