@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from '@tanstack/react-query'
@@ -124,6 +125,14 @@ export function LoginForm({
                       {errors.password.message}
                     </FieldDescription>
                   )}
+                  <div className="flex justify-end">
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
                 </Field>
 
                 {errorMsg && (

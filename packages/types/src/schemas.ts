@@ -40,6 +40,15 @@ export const LoginSchema = z.object({
     password: z.string().min(8),
 });
 
+export const ForgotPasswordSchema = z.object({
+    email: z.string().email(),
+});
+
+export const ResetPasswordSchema = z.object({
+    token: z.string(),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 export const RegisterSchema = z.object({
     email: z.string().email(),
     username: z.string().min(3, "Username must be at least 3 characters"),
