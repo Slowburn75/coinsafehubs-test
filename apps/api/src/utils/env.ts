@@ -10,6 +10,7 @@ const envSchema = z.object({
   ALLOWED_ORIGIN: z.string().default('https://coinsafehubs-test.onrender.com'),
   COOKIE_DOMAIN: z.string().optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  WEB_URL: z.string().default('https://coinsafehubs-test.onrender.com'),
 })
 
 const parsed = envSchema.safeParse(process.env)
