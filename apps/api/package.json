@@ -8,7 +8,7 @@
         "start": "bun dist/index.js",
         "lint": "eslint .",
         "typecheck": "tsc --noEmit",
-        "db:migrate:deploy": "bun x prisma migrate deploy --schema ../../packages/db/prisma/schema.prisma",
+        "db:migrate:deploy": "bun x prisma@5.22.0 migrate deploy --schema ../../packages/db/prisma/schema.prisma",
         "postinstall": "bun x prisma@5.22.0 generate --schema ../../packages/db/prisma/schema.prisma"
     },
     "dependencies": {
