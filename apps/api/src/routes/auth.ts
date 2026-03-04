@@ -14,7 +14,6 @@ const cookieOptions = {
   secure: env.IS_PROD,
   sameSite: env.IS_PROD ? 'None' as const : 'Lax' as const,
   path: '/',
-  domain: env.COOKIE_DOMAIN,
 }
 
 export const authRouter = implement(authContract).router({
@@ -62,6 +61,7 @@ export const authRouter = implement(authContract).router({
           isActive: user.isActive,
           createdAt: user.createdAt,
         },
+        token: accessToken,
       };
     } catch (error) {
       throw handlePrismaError(error);
@@ -118,6 +118,8 @@ export const authRouter = implement(authContract).router({
           isActive: user.isActive,
           createdAt: user.createdAt,
         },
+        // Register might not return a token if OTP is required, 
+        // but we'll include it for consistency or if OTP is disabled.
       }
     } catch (error) {
       throw handlePrismaError(error)

@@ -45,9 +45,18 @@ export function LoginForm({
   })
 
   const loginMutation = useMutation(orpc.auth.login.mutationOptions({
-    onSuccess: async () => {
-      const { data: authData } = await refetch()
-      if (authData?.user?.role === 'ADMIN') {
+    onSuccess: async (data) => {
+      // Sync cookie to Web domain for middleware
+      if (data.token) {
+        await fetch('/api/auth/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: data.token }),
+        });
+      }
+
+      await refetch()
+      if (data.user?.role === 'ADMIN') {
         router.push('/admin/dashboard')
       } else {
         router.push('/dashboard')

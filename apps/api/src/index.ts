@@ -78,6 +78,8 @@ app.use('*', cors({
   origin: (origin) => {
     if (!origin) return env.ALLOWED_ORIGINS[0] || '*'
     if (env.ALLOWED_ORIGINS.includes(origin)) return origin
+    // Allow the specific frontend URL
+    if (origin === 'https://coinsafehubs-test.onrender.com') return origin
     return env.IS_PROD ? '' : origin
   },
   credentials: true,

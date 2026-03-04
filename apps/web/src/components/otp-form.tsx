@@ -127,11 +127,16 @@ export function OTPForm({ ...props }: React.ComponentProps<typeof Card>) {
   }
 
   const verifyMutation = useMutation(orpc.auth.verifyOTP.mutationOptions({
-    onSuccess: (data) => {
-      setSuccess('Account verified successfully! Redirecting to login...')
+    onSuccess: async (data) => {
       if (data.token) {
+        await fetch('/api/auth/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: data.token }),
+        });
         sessionStorage.setItem('authToken', data.token)
       }
+      setSuccess('Account verified successfully! Redirecting to login...')
 
       sessionStorage.removeItem('verificationEmail')
       sessionStorage.removeItem('signupTime')

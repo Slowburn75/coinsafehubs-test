@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { ForgotPasswordSchema, LoginSchema, RegisterSchema, ResetPasswordSchema, UserSchema } from '../schemas';
 
 export const authContract = oc.router({
-    login: oc.input(LoginSchema).output(z.object({ user: UserSchema })),
-    register: oc.input(RegisterSchema).output(z.object({ user: UserSchema })),
+    login: oc.input(LoginSchema).output(z.object({ user: UserSchema, token: z.string().optional() })),
+    register: oc.input(RegisterSchema).output(z.object({ user: UserSchema, token: z.string().optional() })),
     forgotPassword: oc.input(ForgotPasswordSchema).output(z.object({ success: z.boolean() })),
     resetPassword: oc.input(ResetPasswordSchema).output(z.object({ success: z.boolean() })),
     verifyOTP: oc.input(z.object({ email: z.string().email(), otp: z.string().length(6) })).output(z.object({ success: z.boolean(), token: z.string().optional() })),
