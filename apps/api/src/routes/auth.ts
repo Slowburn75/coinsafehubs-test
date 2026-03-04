@@ -11,9 +11,10 @@ import { z } from 'zod'
 
 const cookieOptions = {
   httpOnly: true,
-  secure: env.IS_PROD,
-  sameSite: env.IS_PROD ? 'None' as const : 'Lax' as const,
+  secure: true,
+  sameSite: 'None' as const,
   path: '/',
+  ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 }
 
 export const authRouter = implement(authContract).router({

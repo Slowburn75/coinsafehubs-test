@@ -78,6 +78,7 @@ export function TransferRecipientStep({
       const response = await fetch(
         ``,
         {
+          credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,
           },
