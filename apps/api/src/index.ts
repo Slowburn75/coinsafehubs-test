@@ -278,15 +278,11 @@ app.onError((err, c) => {
 
 const start = async () => {
   try {
-    await prisma.$queryRaw`SELECT 1`
+    // A simple query to ensure DB is up, without complex mapping
+    await prisma.$executeRaw`SELECT 1`
     console.info('Database connection check: OK')
   } catch (error) {
-    const prismaError = mapPrismaError(error)
-    if (prismaError) {
-      console.error(`[startup] ${prismaError.code}: ${prismaError.message}`)
-    } else {
-      console.error('[startup] Database connectivity check failed:', error)
-    }
+    console.error('[startup] Database connectivity check failed:', error)
   }
 
   const port = env.PORT || Number(process.env.PORT) || 3001
