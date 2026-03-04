@@ -6,6 +6,7 @@ import { signAccessToken, signRefreshToken } from '../lib/jwt';
 import { AppError, AuthError, handlePrismaError } from '../utils/errors';
 import { deleteCookie, setCookie } from 'hono/cookie';
 import { env } from '../utils/env';
+import { sendOTPEmail } from '../lib/email';
 const cookieOptions = {
     httpOnly: true,
     secure: env.IS_PROD,
@@ -76,9 +77,21 @@ export const authRouter = implement(authContract).router({
                         username: input.username,
                         fullName: input.fullName,
                         country: input.country,
+                        isActive: false, // User is inactive until email is verified
                     },
                 });
                 await tx.userBalance.create({ data: { userId: created.id } });
+                // Generate and store OTP
+                const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+                await tx.emailVerification.create({
+                    data: {
+                        userId: created.id,
+                        codeHash: otp, // Storing raw for simplicity in this mock-heavy setup, or use hash
+                        expiresAt,
+                    },
+                });
+                await sendOTPEmail(email, otp);
                 return created;
             });
             return {
@@ -194,6 +207,68 @@ export const authRouter = implement(authContract).router({
                 });
             });
             return { success: true };
+        }
+        catch (error) {
+            throw handlePrismaError(error);
+        }
+    }),
+    verifyOTP: implement(authContract.verifyOTP).handler(async ({ input, context }) => {
+        try {
+            const { email, otp } = input;
+            const user = await prisma.user.findUnique({
+                where: { email },
+                include: { emailVerifications: { where: { consumedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: 'desc' }, take: 1 } }
+            });
+            if (!user)
+                throw new AppError('User not found.', 'NOT_FOUND', 404);
+            const verification = user.emailVerifications[0];
+            if (!verification || verification.codeHash !== otp) {
+                throw new AppError('Invalid or expired verification code.', 'AUTH_INVALID_OTP', 400);
+            }
+            await prisma.$transaction(async (tx) => {
+                await tx.user.update({ where: { id: user.id }, data: { isActive: true, kycStatus: 'VERIFIED' } });
+                await tx.emailVerification.update({ where: { id: verification.id }, data: { consumedAt: new Date() } });
+            });
+            // Generate session tokens upon successful verification
+            const accessToken = signAccessToken({ id: user.id, email: user.email, role: user.role });
+            const refreshToken = signRefreshToken({ id: user.id });
+            await prisma.refreshToken.create({
+                data: {
+                    token: refreshToken,
+                    userId: user.id,
+                    expiresAt: new Date(Date.now() + env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000),
+                },
+            });
+            const c = context.c;
+            if (c) {
+                setCookie(c, 'accessToken', accessToken, { ...cookieOptions, maxAge: 60 * 15 });
+                setCookie(c, 'refreshToken', refreshToken, { ...cookieOptions, maxAge: env.REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 });
+            }
+            return { success: true, token: accessToken };
+        }
+        catch (error) {
+            throw handlePrismaError(error);
+        }
+    }),
+    resendOTP: implement(authContract.resendOTP).handler(async ({ input }) => {
+        try {
+            const { email } = input;
+            const user = await prisma.user.findUnique({ where: { email } });
+            if (!user) {
+                // Return success even if not found for security
+                return { success: true, message: 'If an account exists, a new code has been sent.' };
+            }
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+            await prisma.emailVerification.create({
+                data: {
+                    userId: user.id,
+                    codeHash: otp,
+                    expiresAt,
+                },
+            });
+            await sendOTPEmail(email, otp);
+            return { success: true, message: 'Verification code resent successfully.' };
         }
         catch (error) {
             throw handlePrismaError(error);

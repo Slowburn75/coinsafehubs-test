@@ -159,3 +159,12 @@ export const AuditLogSchema = z.object({
     userAgent: z.string().nullable().optional(),
     createdAt: z.date(),
 });
+
+export const VerifyOTPSchema = z.object({
+    email: z.string().email(),
+    otp: z.string().length(6),
+});
+
+export const ResendOTPSchema = z.object({
+    email: z.string().email(),
+});

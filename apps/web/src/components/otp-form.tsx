@@ -22,6 +22,8 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp'
 import { AlertCircle, Loader2, Mail } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { orpc } from '@/lib/orpc'
 
 const OTP_EXPIRY_SECONDS = 10 * 60
 
@@ -118,43 +120,34 @@ export function OTPForm({ ...props }: React.ComponentProps<typeof Card>) {
     setError('')
     setSuccess('')
 
-    try {
-      const response = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          otp: codeToVerify,
-        }),
-      })
+    verifyMutation.mutate({
+      email,
+      otp: codeToVerify,
+    })
+  }
 
-      const data = (await response.json()) as { message?: string; token?: string }
-
-      if (response.ok) {
-        setSuccess('Account verified successfully! Redirecting to login...')
-        if (data.token) {
-          sessionStorage.setItem('authToken', data.token)
-        }
-
-        sessionStorage.removeItem('verificationEmail')
-        sessionStorage.removeItem('signupTime')
-
-        setTimeout(() => {
-          router.push('/login')
-        }, 1200)
-      } else {
-        setError(data.message || 'Verification failed. Please try again.')
-        setOtp('')
+  const verifyMutation = useMutation(orpc.auth.verifyOTP.mutationOptions({
+    onSuccess: (data) => {
+      setSuccess('Account verified successfully! Redirecting to login...')
+      if (data.token) {
+        sessionStorage.setItem('authToken', data.token)
       }
-    } catch {
-      setError('Network error. Please check your connection and try again.')
+
+      sessionStorage.removeItem('verificationEmail')
+      sessionStorage.removeItem('signupTime')
+
+      setTimeout(() => {
+        router.push('/login')
+      }, 1200)
+    },
+    onError: (error: any) => {
+      setError(error.message || 'Verification failed. Please try again.')
       setOtp('')
-    } finally {
+    },
+    onSettled: () => {
       setIsLoading(false)
     }
-  }
+  }))
 
   const handleOtpChange = (value: string) => {
     setOtp(value)
@@ -172,32 +165,24 @@ export function OTPForm({ ...props }: React.ComponentProps<typeof Card>) {
     setError('')
     setSuccess('')
 
-    try {
-      const response = await fetch('/api/auth/otp/resend', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      })
+    resendMutation.mutate({ email })
+  }
 
-      const data = (await response.json()) as { message?: string }
-
-      if (response.ok) {
-        setSuccess(data.message || 'Verification code sent. Check your inbox.')
-        setResendCooldown(60)
-        setTimeRemaining(OTP_EXPIRY_SECONDS)
-        sessionStorage.setItem('signupTime', Date.now().toString())
-        setOtp('')
-      } else {
-        setError(data.message || 'Failed to resend code. Please try again.')
-      }
-    } catch {
-      setError('Network error. Please check your connection and try again.')
-    } finally {
+  const resendMutation = useMutation(orpc.auth.resendOTP.mutationOptions({
+    onSuccess: (data) => {
+      setSuccess(data.message || 'Verification code sent. Check your inbox.')
+      setResendCooldown(60)
+      setTimeRemaining(OTP_EXPIRY_SECONDS)
+      sessionStorage.setItem('signupTime', Date.now().toString())
+      setOtp('')
+    },
+    onError: (error: any) => {
+      setError(error.message || 'Failed to resend code. Please try again.')
+    },
+    onSettled: () => {
       setIsResending(false)
     }
-  }
+  }))
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
