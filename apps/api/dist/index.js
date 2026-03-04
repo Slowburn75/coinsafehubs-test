@@ -66,21 +66,28 @@ app.get('/', (c) => c.text('OK'));
 app.get('/health', (c) => c.json({ status: 'OK', timestamp: new Date().toISOString() }));
 app.use('*', secureHeaders());
 app.use('*', globalRateLimit);
+const allowedOrigins = new Set([
+    ...env.ALLOWED_ORIGINS,
+    'https://coinsafehubs-test.onrender.com',
+]);
 app.use('*', cors({
     origin: (origin) => {
         if (!origin)
-            return env.ALLOWED_ORIGINS[0] || '*';
-        if (env.ALLOWED_ORIGINS.includes(origin))
+            return Array.from(allowedOrigins)[0] || '';
+        if (allowedOrigins.has(origin))
             return origin;
-        return env.IS_PROD ? '' : origin;
+        return '';
     },
     credentials: true,
-    allowMethods: ['GET', 'POST', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+    exposeHeaders: ['Set-Cookie'],
+    maxAge: 86400,
 }));
 app.use('*', logger());
 app.use('*', requestId());
 app.use('*', auditLog);
+app.options('*', (c) => c.body(null, 204));
 app.use('*', async (c, next) => {
     const pathname = new URL(c.req.url).pathname;
     const allowedMethods = routeMethodAllowlist.get(pathname);
@@ -247,17 +254,12 @@ app.onError((err, c) => {
 });
 const start = async () => {
     try {
-        await prisma.$queryRaw `SELECT 1`;
+        // A simple query to ensure DB is up, without complex mapping
+        await prisma.$executeRaw `SELECT 1`;
         console.info('Database connection check: OK');
     }
     catch (error) {
-        const prismaError = mapPrismaError(error);
-        if (prismaError) {
-            console.error(`[startup] ${prismaError.code}: ${prismaError.message}`);
-        }
-        else {
-            console.error('[startup] Database connectivity check failed:', error);
-        }
+        console.error('[startup] Database connectivity check failed:', error);
     }
     const port = env.PORT || Number(process.env.PORT) || 3001;
     serve({ fetch: app.fetch, port });

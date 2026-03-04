@@ -9,10 +9,16 @@ import { env } from '../utils/env';
 import { sendOTPEmail } from '../lib/email';
 const cookieOptions = {
     httpOnly: true,
-    secure: env.IS_PROD,
-    sameSite: env.IS_PROD ? 'None' : 'Lax',
+    secure: true,
+    sameSite: 'None',
     path: '/',
-    domain: env.COOKIE_DOMAIN,
+    ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
+};
+const clearCookieOptions = {
+    path: '/',
+    secure: true,
+    sameSite: 'None',
+    ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 };
 export const authRouter = implement(authContract).router({
     login: implement(authContract.login).handler(async ({ input, context }) => {
@@ -56,6 +62,7 @@ export const authRouter = implement(authContract).router({
                     isActive: user.isActive,
                     createdAt: user.createdAt,
                 },
+                token: accessToken,
             };
         }
         catch (error) {
@@ -106,6 +113,8 @@ export const authRouter = implement(authContract).router({
                     isActive: user.isActive,
                     createdAt: user.createdAt,
                 },
+                // Register might not return a token if OTP is required, 
+                // but we'll include it for consistency or if OTP is disabled.
             };
         }
         catch (error) {
@@ -153,8 +162,8 @@ export const authRouter = implement(authContract).router({
             await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
         }
         if (c) {
-            deleteCookie(c, 'accessToken', { path: '/' });
-            deleteCookie(c, 'refreshToken', { path: '/' });
+            deleteCookie(c, 'accessToken', clearCookieOptions);
+            deleteCookie(c, 'refreshToken', clearCookieOptions);
         }
         return { success: true };
     }),
