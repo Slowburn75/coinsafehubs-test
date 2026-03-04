@@ -74,21 +74,26 @@ app.get('/health', (c) => c.json({ status: 'OK', timestamp: new Date().toISOStri
 
 app.use('*', secureHeaders())
 app.use('*', globalRateLimit)
+const allowedOrigins = new Set([
+  ...env.ALLOWED_ORIGINS,
+  'https://coinsafehubs-test.onrender.com',
+])
+
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin) return env.ALLOWED_ORIGINS[0] || '*'
-    if (env.ALLOWED_ORIGINS.includes(origin)) return origin
-    // Allow the specific frontend URL
-    if (origin === 'https://coinsafehubs-test.onrender.com') return origin
-    return env.IS_PROD ? '' : origin
+    if (!origin) return env.ALLOWED_ORIGINS[0] ?? 'https://coinsafehubs-test.onrender.com'
+    return allowedOrigins.has(origin) ? origin : ''
   },
   credentials: true,
-  allowMethods: ['GET', 'POST', 'OPTIONS'],
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400,
 }))
 app.use('*', logger())
 app.use('*', requestId())
 app.use('*', auditLog)
+
+app.options('*', (c) => c.body(null, 204))
 
 
 app.use('*', async (c, next) => {

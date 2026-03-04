@@ -11,9 +11,17 @@ import { z } from 'zod'
 
 const cookieOptions = {
   httpOnly: true,
-  secure: env.IS_PROD,
-  sameSite: env.IS_PROD ? 'None' as const : 'Lax' as const,
+  secure: true,
+  sameSite: 'None' as const,
   path: '/',
+  ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
+}
+
+const clearCookieOptions = {
+  path: '/',
+  secure: true,
+  sameSite: 'None' as const,
+  ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
 }
 
 export const authRouter = implement(authContract).router({
@@ -167,8 +175,8 @@ export const authRouter = implement(authContract).router({
       await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
     }
     if (c) {
-      deleteCookie(c, 'accessToken', { path: '/' });
-      deleteCookie(c, 'refreshToken', { path: '/' });
+      deleteCookie(c, 'accessToken', clearCookieOptions);
+      deleteCookie(c, 'refreshToken', clearCookieOptions);
     }
     return { success: true };
   }),
