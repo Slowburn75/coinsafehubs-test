@@ -72,6 +72,7 @@ export default function DepositPage() {
         '',
         {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Authorization': `Bearer ${token}`,
           },

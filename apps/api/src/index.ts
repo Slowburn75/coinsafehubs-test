@@ -76,19 +76,21 @@ app.use('*', secureHeaders())
 app.use('*', globalRateLimit)
 app.use('*', cors({
   origin: (origin) => {
-    if (!origin) return env.ALLOWED_ORIGINS[0] || '*'
+    if (!origin) return env.ALLOWED_ORIGINS[0] ?? 'https://coinsafehubs-test.onrender.com'
     if (env.ALLOWED_ORIGINS.includes(origin)) return origin
-    // Allow the specific frontend URL
-    if (origin === 'https://coinsafehubs-test.onrender.com') return origin
-    return env.IS_PROD ? '' : origin
+    return ''
   },
   credentials: true,
   allowMethods: ['GET', 'POST', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cookie'],
+  exposeHeaders: ['Set-Cookie'],
+  maxAge: 86400,
 }))
 app.use('*', logger())
 app.use('*', requestId())
 app.use('*', auditLog)
+
+app.options('*', (c) => c.body(null, 204))
 
 
 app.use('*', async (c, next) => {
